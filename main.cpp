@@ -158,7 +158,6 @@ void set(unsigned short int allsets[][2], string content)
         content = content.substr(pos1+1);
     }
 
-    cout<<"Calling evaluate with: "<<content<<endl;
     unsigned short int universe = evaluate(allsets, content);
 
     if (storage < 26)
@@ -265,7 +264,16 @@ void replaceBrackets(const unsigned short int allsets[][2], string &expression)
     {
         stringstream ss;
         size_t pos2 = expression.find('}', pos1 + 1);
+        if (expression[pos1-1] != '~')
         ss << expression.substr(0,pos1) <<' '<< setFromList(expression.substr(pos1+1, pos2)) << ' ' << expression.substr(pos2+1);
+        else
+        {
+            unsigned short int universe = setFromList(expression.substr(pos1+1, pos2));
+            unsigned short int notuniverse = ~universe;
+            ss << expression.substr(0,pos1-1) <<' '<< notuniverse << ' ' << expression.substr(pos2+1);
+
+        }
+
         getline(ss, expression);
         pos1 = expression.find('{');
     }
