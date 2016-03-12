@@ -1,41 +1,60 @@
 #include <iostream>
-#include <bitset>
+#include <sstream>
 #include <string>
+#include <vector>
 
 using namespace std;
 
 void include(unsigned short int &universe, size_t who);
 void display(unsigned short int universe);
-size_t find(unsigned short int **allsets, char tofind);
-void initialize(unsigned short int **allsets);
+size_t find(const unsigned short int allsets[][2], char tofind);
+void initialize(unsigned short int allsets[][2]);
 void help();
-void perform(unsigned short int **allsets, string input);
-void list(unsigned short int **allsets, string content);
-void set(unsigned short int **allsets, string content);
+void perform(unsigned short int allsets[][2], string input);
+void list(unsigned short int allsets[][2], string content);
+void set(unsigned short int allsets[][2], string content);
 unsigned short int setUnion(unsigned short int first, unsigned short int second);
 unsigned short int setIntersection(unsigned short int first, unsigned short int second);
 unsigned short int setDifference(unsigned short int first, unsigned short int second);
+void evaluate_vects (vector<unsigned short int> &operands, vector<char> &operators);
+unsigned short int evaluate (const unsigned short int allsets[][2], string content);
+void replaceLetters(const unsigned short int allsets[][2], string &expression);
+unsigned short int setFromList(string content);
+void replaceBrackets(const unsigned short int allsets[][2], string &expression);
+
+
+
+
 
 int main()
 {
     unsigned short int allsets[26][2];
+    initialize(allsets);
+    string input;
+
+    help();
+    getline(cin, input);
+    while(input!= "")
+    {
+        perform(allsets,input);
+        //        help();
+        getline(cin, input);
+
+    }
 
 
-//    help();
 
 
-
-
-        unsigned short int universe = 0;
-        size_t bit;
-        while(1)
-        {
-            cout<<"Who to include? ";
-            cin>>bit;
-            include(universe,bit);
-            display(universe);
-            display(~universe);
-        }
+    //    unsigned short int universe = 0;
+    //    size_t bit;
+    //    while(1)
+    //    {
+    //        cout<<"Who to include? ";
+    //        cin>>bit;
+    //        include(universe,bit);
+    //        display(universe);
+    //        display(~universe);
+    //    }
     return 0;
 }
 
@@ -44,13 +63,13 @@ void include(unsigned short int &universe, size_t who)
 {
     unsigned short int mask = 1;
     universe |= mask << who;
-    cout<<"Universe is: "<<universe<<endl;
+    //    cout<<"Universe is: "<<universe<<endl;
 }
 
 void display(unsigned short int universe)
 {
     unsigned short int mask = 1;
-    cout<<"Members of the set are: ";
+    //    cout<<"Members of the set are: ";
     for(unsigned short int i = 0; i < 16; ++i)
     {
         unsigned short int result;
@@ -58,18 +77,18 @@ void display(unsigned short int universe)
         if(result)
             cout<<i<<", ";
     }
-    cout<<"\b\b "<<endl;
+    cout<<"\b\b ";
 }
 
-size_t find(unsigned short int **allsets, char tofind)
+size_t find(const unsigned short int allsets[][2], char tofind)
 {
-    for (size_t i = 0; i<26; ++i)
-        if (allsets[i][0] != 0 && allsets[i][0] == int(tofind))
-            return i;
-    return 26;
+    size_t i = 0;
+    while (i < 26 && allsets[i][0] != 0 && allsets[i][0] != int(tofind))
+        ++i;
+    return i;
 }
 
-void initialize(unsigned short int **allsets)
+void initialize(unsigned short int allsets[][2])
 {
     for (size_t i = 0; i < 26; ++i)
         for (size_t j = 0; j < 2 ; ++j)
@@ -90,7 +109,7 @@ void help()
     return;
 }
 
-void perform(unsigned short int **allsets, string input)
+void perform(unsigned short int allsets[][2], string input)
 {
     size_t pos = input.find(' ');
     string content;
@@ -101,7 +120,8 @@ void perform(unsigned short int **allsets, string input)
     }
     for (size_t i = 0; i<input.size();++i)
         input[i] = toupper(input[i]);
-    if (input == "LIST" && pos != string::npos)
+
+    if (input == "LIST")
         list(allsets, content);
     else if (input == "SET" && pos != string::npos)
         set(allsets, content);
@@ -110,46 +130,183 @@ void perform(unsigned short int **allsets, string input)
 
 }
 
-void list(unsigned short int **allsets, string content)
+void list(unsigned short int allsets[][2], string content)
 {
     size_t i(0);
-    while (allsets[i][0] != 0)
+    while (i < 26 && allsets[i][0] != 0)
     {
         cout<<char(allsets[i][0])<<" = ";
         display(allsets[i][1]);
-                cout<<endl;
+        cout<<endl;
         ++i;
     }
 }
 
-void set(unsigned short int **allsets, string content){}
+void set(unsigned short int allsets[][2], string content)
+{
+    size_t pos1 = content.find('=');
+    char junk;
+    size_t storage = 26;
+
+    if (pos1 != string::npos)
+    {
+        stringstream ss;
+        ss << content.substr(0,pos1);
+        ss >> junk;
+        junk = toupper(junk);
+        storage = find(allsets, junk);
+        content = content.substr(pos1+1);
+    }
+
+    cout<<"Calling evaluate with: "<<content<<endl;
+    unsigned short int universe = evaluate(allsets, content);
+
+    if (storage < 26)
+    {
+        cout<< junk<<" = ";
+        display(universe);
+        allsets[storage][0] = junk;
+        allsets[storage][1] = universe;
+        cout<<endl;
+    }
+    else
+    {
+        display(universe);
+        cout<<endl;
+    }
+}
 
 unsigned short int setUnion(unsigned short int first, unsigned short int second)
 {
     unsigned short int third = 0;
-    for (size_t i = 0; i < 16; ++i)
-    {
-        (third << i) = (first << i) | (second << i);
-    }
+    third = first | second;
+
     return third;
 }
 
 unsigned short int setIntersection(unsigned short int first, unsigned short int second)
 {
     unsigned short int third = 0;
-    for (size_t i = 0; i < 16; ++i)
-    {
-        (third << i) = (first << i) & (second << i);
-    }
+    third = first & second;
     return third;
 }
 
 unsigned short int setDifference(unsigned short int first, unsigned short int second)
 {
     unsigned short int third = 0;
-    for (size_t i = 0; i < 16; ++i)
-    {
-        (third << i) = (first << i) & !(second << i);
-    }
+    third = first & ~second;
     return third;
+}
+
+void evaluate_vects (vector<unsigned short int> &operands, vector<char> &operators)
+{
+    unsigned short int second = operands.back();
+    operands.pop_back();
+    unsigned short int first = operands.back();
+    operands.pop_back();
+
+    switch(operators.back())
+    {
+    case '+':
+        operands.push_back(setUnion(first, second));
+        break;
+
+    case '*':
+        operands.push_back(setIntersection(first, second));
+        break;
+
+    case '/':
+        operands.push_back(setDifference(first, second));
+        break;
+    }
+    operators.pop_back();
+}
+
+unsigned short int evaluate (const unsigned short int allsets[][2], string content)
+{
+    vector<unsigned short int> operands;
+    vector<char> operators;
+    stringstream ss;
+
+
+    replaceBrackets(allsets, content);
+    replaceLetters(allsets, content);
+
+    ss << content;
+
+    while(ss && ss.peek() != '\n')
+    {
+        if (isdigit(ss.peek()))
+        {
+            unsigned short int number;
+            ss >> number;
+            operands.push_back(number);
+        }
+        else if (strchr("+*/", ss.peek()) != NULL)
+        {
+            char symbol;
+            ss >> symbol;
+            operators.push_back(symbol);
+        }
+        else
+            ss.ignore();
+
+        if (operands.size() == 2)
+            evaluate_vects(operands, operators);
+    }
+
+    return operands.back();
+}
+
+void replaceBrackets(const unsigned short int allsets[][2], string &expression)
+{
+    size_t pos1 = expression.find('{');
+    while (pos1 != string::npos)
+    {
+        stringstream ss;
+        size_t pos2 = expression.find('}', pos1 + 1);
+        ss << expression.substr(0,pos1) <<' '<< setFromList(expression.substr(pos1+1, pos2)) << ' ' << expression.substr(pos2+1);
+        getline(ss, expression);
+        pos1 = expression.find('{');
+    }
+}
+
+unsigned short int setFromList(string content)
+{
+    stringstream ss;
+    unsigned short int universe = 0;
+    ss << content;
+
+    while (ss && ss.peek() != '\n')
+    {
+        if (isdigit(ss.peek()))
+        {
+            size_t number;
+            ss >> number;
+            include(universe,number);
+        }
+        else
+            ss.ignore();
+    }
+
+    return universe;
+}
+
+void replaceLetters(const unsigned short int allsets[][2], string &expression)
+{
+    size_t pos = expression.find_first_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+    while (pos != string::npos)
+    {
+        stringstream ss;
+        if (expression[pos-1] != '~')
+            ss<<expression.substr(0,pos)<<' '<<allsets[find(allsets, toupper(expression[pos]))][1]<<' '<<expression.substr(pos+1);
+        else
+        {
+            unsigned short int universe = allsets[find(allsets, toupper(expression[pos]))][1];
+            unsigned short int notuniverse = ~universe;
+            ss<<expression.substr(0,pos-1)<<' '<<notuniverse<<' '<<expression.substr(pos+1);
+        }
+        getline(ss, expression);
+        pos = expression.find_first_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+    }
 }
