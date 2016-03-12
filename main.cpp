@@ -69,15 +69,22 @@ void include(unsigned short int &universe, size_t who)
 void display(unsigned short int universe)
 {
     unsigned short int mask = 1;
+    bool notempty;
     //    cout<<"Members of the set are: ";
     for(unsigned short int i = 0; i < 16; ++i)
     {
         unsigned short int result;
         result = (mask << i) & universe;
         if(result)
+        {
+            notempty = true;
             cout<<i<<", ";
+        }
     }
+    if (notempty)
     cout<<"\b\b ";
+    else
+        cout<<"NULL";
 }
 
 size_t find(const unsigned short int allsets[][2], char tofind)
