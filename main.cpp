@@ -12,30 +12,30 @@ void help();
 void perform(unsigned short int **allsets, string input);
 void list(unsigned short int **allsets, string content);
 void set(unsigned short int **allsets, string content);
-void setUnion(unsigned short int first, unsigned short int second);
-void setIntersection(unsigned short int first, unsigned short int second);
-void setDifference(unsigned short int first, unsigned short int second);
+unsigned short int setUnion(unsigned short int first, unsigned short int second);
+unsigned short int setIntersection(unsigned short int first, unsigned short int second);
+unsigned short int setDifference(unsigned short int first, unsigned short int second);
 
 int main()
 {
     unsigned short int allsets[26][2];
 
 
-    help();
+//    help();
 
 
 
 
-    //    unsigned short int universe = 0;
-    //    size_t bit;
-    //    while(1)
-    //    {
-    //        cout<<"Who to include? ";
-    //        cin>>bit;
-    //        include(universe,bit);
-    //        display(universe);
-    //        display(~universe);
-    //    }
+        unsigned short int universe = 0;
+        size_t bit;
+        while(1)
+        {
+            cout<<"Who to include? ";
+            cin>>bit;
+            include(universe,bit);
+            display(universe);
+            display(~universe);
+        }
     return 0;
 }
 
@@ -115,9 +115,41 @@ void list(unsigned short int **allsets, string content)
     size_t i(0);
     while (allsets[i][0] != 0)
     {
-        cout<<char(allsets[i][0])<<" = "<<display(allsets[i][1])<<endl;
+        cout<<char(allsets[i][0])<<" = ";
+        display(allsets[i][1]);
+                cout<<endl;
         ++i;
     }
 }
 
 void set(unsigned short int **allsets, string content){}
+
+unsigned short int setUnion(unsigned short int first, unsigned short int second)
+{
+    unsigned short int third = 0;
+    for (size_t i = 0; i < 16; ++i)
+    {
+        (third << i) = (first << i) | (second << i);
+    }
+    return third;
+}
+
+unsigned short int setIntersection(unsigned short int first, unsigned short int second)
+{
+    unsigned short int third = 0;
+    for (size_t i = 0; i < 16; ++i)
+    {
+        (third << i) = (first << i) & (second << i);
+    }
+    return third;
+}
+
+unsigned short int setDifference(unsigned short int first, unsigned short int second)
+{
+    unsigned short int third = 0;
+    for (size_t i = 0; i < 16; ++i)
+    {
+        (third << i) = (first << i) & !(second << i);
+    }
+    return third;
+}
