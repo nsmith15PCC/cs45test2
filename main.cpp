@@ -2,6 +2,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <fstream>
 
 using namespace std;
 
@@ -21,10 +22,8 @@ unsigned short int evaluate (const unsigned short int allsets[][2], string conte
 void replaceLetters(const unsigned short int allsets[][2], string &expression);
 unsigned short int setFromList(string content);
 void replaceBrackets(const unsigned short int allsets[][2], string &expression);
-
-
-
-
+void save(const unsigned short int allsets[][2], string filename);
+void load(unsigned short int allsets[][2], string filename);
 
 int main()
 {
@@ -42,19 +41,6 @@ int main()
 
     }
 
-
-
-
-    //    unsigned short int universe = 0;
-    //    size_t bit;
-    //    while(1)
-    //    {
-    //        cout<<"Who to include? ";
-    //        cin>>bit;
-    //        include(universe,bit);
-    //        display(universe);
-    //        display(~universe);
-    //    }
     return 0;
 }
 
@@ -109,8 +95,9 @@ void help()
        <<"LIST - List all sets and their contents"<<endl
       <<"HELP - Give help"<<endl
      <<"SET - Enter a set (can be a definition, union, intersection, or combination of these)"<<endl
-    <<"'+' - Returns the union of two sets"<<endl
-    <<"'*' - Returns the intersection of two sets"<<endl
+    <<"    '+' - Returns the union of two sets"<<endl
+    <<"    '*' - Returns the intersection of two sets"<<endl
+    <<"    '*' - Returns the difference of two sets"<<endl
     <<"LOAD <filename> - Load a list of sets from file"<<endl
     <<"SAVE <filename> - Save a list of sets to file"<<endl;
     return;
@@ -132,6 +119,10 @@ void perform(unsigned short int allsets[][2], string input)
         list(allsets, content);
     else if (input == "SET" && pos != string::npos)
         set(allsets, content);
+    else if (input == "SAVE" && pos != string::npos)
+        save(allsets, content);
+    else if (input == "LOAD" && pos != string::npos)
+        load(allsets, content);
     else
         help();
 
@@ -324,4 +315,75 @@ void replaceLetters(const unsigned short int allsets[][2], string &expression)
         getline(ss, expression);
         pos = expression.find_first_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
     }
+}
+
+void save(const unsigned short int allsets[][2], string filename)
+{
+    for (size_t i = 0; i < filename.length(); ++i)
+        filename[i]=tolower(filename[i]);
+    size_t pos = filename.find('.');
+    if (pos != string::npos)
+        filename = filename.substr(0,pos);
+    filename += ".dat";
+    ifstream ins(filename.c_str());
+    while (! ins.fail())
+    {
+        ins.close();
+        string response;
+        cout<<"File already exists. Overwrite? ";
+        getline(cin, response);
+        if (toupper(response[0]) == 'Y')
+           break;
+        cout<<"Enter filename: ";
+        getline(cin, filename);
+        for (size_t i = 0; i < filename.length(); ++i)
+            filename[i]=tolower(filename[i]);
+        pos = filename.find('.');
+        if (pos != string::npos)
+            filename = filename.substr(0,pos);
+        filename += ".dat";
+        ins.open(filename.c_str());
+    }
+    ins.close();
+    ofstream out(filename.c_str());
+
+    size_t i(0);
+    while (i < 26 && allsets[i][0] != 0)
+    {
+        out<<allsets[i][0]<<" "<<allsets[i][1]<<endl;
+        ++i;
+    }
+    out.close();
+    cout<<"Saved to "<<filename<<endl;
+}
+
+void load(unsigned short int allsets[][2], string filename)
+{
+    for (size_t i = 0; i < filename.length(); ++i)
+        filename[i]=tolower(filename[i]);
+    size_t pos = filename.find('.');
+    if (pos != string::npos)
+        filename = filename.substr(0,pos);
+    filename += ".dat";
+    ifstream ins(filename.c_str());
+    if (ins.fail())
+    {
+        cout<<"No such file!"<<endl;
+        return;
+    }
+    initialize(allsets);
+
+    string line;
+    for (size_t i = 0; i < 26 ; ++i)
+    {
+        ins >> allsets[i][0];
+        ins >> allsets[i][1];
+        if (ins.peek() == EOF)
+            break;
+    }
+
+    ins.close();
+    cout<<"File successfully loaded."<<endl;
+    list(allsets, "");
+
 }
