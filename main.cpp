@@ -64,7 +64,7 @@ void include(unsigned short int &universe, size_t who)
 void display(unsigned short int universe)
 {
     unsigned short int mask = 1;
-    bool notempty;
+    bool notempty = false;
     cout<<"{";
     for(unsigned short int i = 0; i < 16; ++i)
     {
