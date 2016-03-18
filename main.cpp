@@ -374,7 +374,7 @@ void replaceColors (string & expression)
 {
 size_t pos1 = expression.find_first_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
 
-while (pos1 != string::npos)
+while (pos1 < expression.length()-1)
 {
     size_t pos2 = expression.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", pos1);
     if (pos2 != pos1+1)
@@ -388,7 +388,7 @@ while (pos1 != string::npos)
         ss << expression.substr(0,pos1) << number << expression.substr(pos2);
         getline(ss, expression);
     }
-    pos1 = expression.find_first_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", pos1);
+    pos1 = expression.find_first_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", pos1 + 1);
 }
 }
 
