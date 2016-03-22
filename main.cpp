@@ -9,6 +9,7 @@ using namespace std;
 static const string COLORS[16] = {"WHITE", "GOLD", "GREY", "RED", "GREEN", "BLUE", "ORANGE", "PURPLE", "YELLOW", "VIOLET", "MAGENTA", "CYAN", "RUST", "NAVY", "BURGUNDY", "BLACK"};
 static const char OPERATIONS[6] = {'+', '*', '\\', '<', '>', '='};
 static const string COMMANDS[7] = {"SET","IS", "LIST", "SHOW", "SAVE", "LOAD", "HELP"};
+static const string PRECEDENCE = "~*//+";
 
 
 void include(unsigned short int &universe, size_t who);
@@ -32,6 +33,7 @@ unsigned short int setFromList(string content);
 void replaceBrackets(const unsigned short int allsets[][2], string &expression);
 void save(const unsigned short int allsets[][2], string filename);
 void load(unsigned short int allsets[][2], string filename);
+string shuntingyard(string expression);
 
 
 int main()
@@ -77,7 +79,7 @@ void display(unsigned short int universe)
         }
     }
     if (notempty)
-    cout<<"\b\b}";
+        cout<<"\b\b}";
     else
         cout<<"\bNULL";
 }
@@ -100,12 +102,14 @@ void initialize(unsigned short int allsets[][2])
 
 void help()
 {
-    cout<<"Commands:"<<endl
-       <<"LIST - List all sets and their contents"<<endl
-      <<"SHOW <set> - List all sets and their contents"<<endl
+    cout<<"Universe is:"<<endl
+       <<"WHITE, GOLD, GREY, RED, GREEN, BLUE, ORANGE, PURPLE, YELLOW, VIOLET, MAGENTA, CYAN, RUST, NAVY, BURGUNDY, BLACK"<<endl
+      <<"Commands:"<<endl
+     <<"LIST - List all sets and their contents"<<endl
+    <<"SHOW <set> - List all sets and their contents"<<endl
 
-      <<"HELP - Give help"<<endl
-     <<"SET - Enter a set (can be a definition, union, intersection, or combination of these)"<<endl
+    <<"HELP - Give help"<<endl
+    <<"SET - Enter a set (can be a definition, union, intersection, or combination of these)"<<endl
     <<"    <set1> '+' <set2> - Returns the union of two sets"<<endl
     <<"    <set1> '*' <set2> - Returns the intersection of two sets"<<endl
     <<"    <set1> '\\' <set2> - Returns the difference of two sets"<<endl
@@ -136,41 +140,41 @@ void perform(unsigned short int allsets[][2], string input)
     size_t command;
     for (command = 0; command < 6 && input != COMMANDS[command]; command++);
 
-switch (command)
-{
-case (0):
-    set(allsets, content);
-    break;
+    switch (command)
+    {
+    case (0):
+        set(allsets, content);
+        break;
 
-case (1):
-    is(allsets, content);
-    break;
+    case (1):
+        is(allsets, content);
+        break;
 
-case (2):
-    list(allsets, content);
-    break;
+    case (2):
+        list(allsets, content);
+        break;
 
-case(3):
-    show(allsets, content);
-    break;
+    case(3):
+        show(allsets, content);
+        break;
 
-case(4):
-    save(allsets, content);
-    break;
+    case(4):
+        save(allsets, content);
+        break;
 
-case(5):
-    load(allsets, content);
-    break;
+    case(5):
+        load(allsets, content);
+        break;
 
-case (6):
-    cout<<"Invalid command."<<endl;
-    help();
-    break;
+    case (6):
+        cout<<"Invalid command."<<endl;
+        help();
+        break;
 
-default:
-    help();
+    default:
+        help();
 
-}
+    }
 
 }
 
@@ -202,6 +206,11 @@ void set(unsigned short int allsets[][2], string content)
     }
 
     unsigned short int universe = evaluate(allsets, content);
+    if (universe > 65535)
+    {
+        cout<<"Invalid Entry!"<<endl;
+        return;
+    }
 
     if (storage < 52)
     {
@@ -240,7 +249,7 @@ void is(unsigned short int allsets[][2], string content)
     {
     case '<':
         result = ((first | second) == second);
-                break;
+        break;
 
     case '>':
         result = ((first | second) == first);
@@ -298,25 +307,32 @@ unsigned short int setDifference(unsigned short int first, unsigned short int se
 
 void evaluate_vects (vector<unsigned short int> &operands, vector<char> &operators)
 {
-    unsigned short int second = operands.back();
-    operands.pop_back();
-    unsigned short int first = operands.back();
+    unsigned short int second = operands.back(), first;
     operands.pop_back();
 
     switch(operators.back())
     {
     case '+':
+        first = operands.back();
+        operands.pop_back();
         operands.push_back(setUnion(first, second));
         break;
 
     case '*':
+        first = operands.back();
+        operands.pop_back();
         operands.push_back(setIntersection(first, second));
         break;
 
     case '\\':
+        first = operands.back();
+        operands.pop_back();
         operands.push_back(setDifference(first, second));
         break;
 
+    case '~':
+        operands.push_back(~second);
+        break;
     }
     operators.pop_back();
 }
@@ -331,6 +347,15 @@ unsigned short int evaluate (const unsigned short int allsets[][2], string conte
     replaceBrackets(allsets, content);
     replaceLetters(allsets, content);
 
+
+    if (content.find_first_of("-.")<string::npos)
+    {
+        cout<<"Invalid input!"<<endl;
+        return NULL;
+    }
+
+    content = shuntingyard(content);
+
     ss << content;
 
     while(ss && ss.peek() != '\n')
@@ -339,30 +364,34 @@ unsigned short int evaluate (const unsigned short int allsets[][2], string conte
         {
             unsigned short int number;
             ss >> number;
+            if (number > 65535)
+            {
+                cout<<"Invalid Input!"<<endl;
+                return NULL;
+            }
             operands.push_back(number);
         }
-        else if (strchr("+*\\", ss.peek()) != NULL)
+        else if (strchr("~+*\\()", ss.peek()) != NULL)
         {
             char symbol;
             ss >> symbol;
             operators.push_back(symbol);
-            if (operators.size() > 0 || operands.size() < 1)
+            if (operators.size() > 0 && operands.size() < 1)
             {
                 cout << "Invalid expression!"<<endl;
                 return 0;
             }
+            evaluate_vects(operands, operators);
         }
-
-
         else
             ss.ignore();
-
-        if (operands.size() == 2)
-            evaluate_vects(operands, operators);
     }
 
+    while (!operators.empty())
+        evaluate_vects(operands, operators);
+
     if (operands.size() == 1)
-    return operands.back();
+        return operands.back();
     else
     {
         cout << "Invalid expression!"<<endl;
@@ -372,24 +401,32 @@ unsigned short int evaluate (const unsigned short int allsets[][2], string conte
 
 void replaceColors (string & expression)
 {
-size_t pos1 = expression.find_first_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+    size_t pos1 = expression.find_first_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
 
-while (pos1 < expression.length()-1)
-{
-    size_t pos2 = expression.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", pos1);
-    if (pos2 != pos1+1)
+    while (pos1 < expression.length()-1)
     {
-        stringstream ss;
-        string color = expression.substr(pos1, pos2-pos1);
-        for (size_t i = 0; i < color.size(); ++i)
-            color[i] = toupper(color[i]);
-        size_t number;
-        for (number = 0; number < 16 && color != COLORS[number]; ++number);
-        ss << expression.substr(0,pos1) << number << expression.substr(pos2);
-        getline(ss, expression);
+        size_t pos2 = expression.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", pos1);
+        if (pos2 != pos1+1)
+        {
+            stringstream ss;
+            string color = expression.substr(pos1, pos2-pos1);
+            for (size_t i = 0; i < color.size(); ++i)
+                color[i] = toupper(color[i]);
+            size_t number;
+            for (number = 0; number < 16 && color != COLORS[number]; ++number);
+            if (number == 16)
+            {
+                ss << expression.substr(0,pos1) << "-1" << expression.substr(pos2);
+                getline(ss, expression);
+            }
+            else
+            {
+                ss << expression.substr(0,pos1) << number << expression.substr(pos2);
+                getline(ss, expression);
+            }
+        }
+        pos1 = expression.find_first_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", pos1 + 1);
     }
-    pos1 = expression.find_first_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", pos1 + 1);
-}
 }
 
 void replaceBrackets(const unsigned short int allsets[][2], string &expression)
@@ -400,7 +437,7 @@ void replaceBrackets(const unsigned short int allsets[][2], string &expression)
         stringstream ss;
         size_t pos2 = expression.find('}', pos1 + 1);
         if (expression[pos1-1] != '~')
-        ss << expression.substr(0,pos1) <<' '<< setFromList(expression.substr(pos1+1, pos2)) << ' ' << expression.substr(pos2+1);
+            ss << expression.substr(0,pos1) <<' '<< setFromList(expression.substr(pos1+1, pos2)) << ' ' << expression.substr(pos2+1);
         else
         {
             unsigned short int universe = setFromList(expression.substr(pos1+1, pos2));
@@ -419,6 +456,12 @@ unsigned short int setFromList(string content)
     stringstream ss;
     unsigned short int universe = 0;
     ss << content;
+
+    if (content.find_first_of("-.") != string::npos)
+    {
+        cout<<"Invalid Input!"<<endl;
+        return NULL;
+    }
 
     while (ss && ss.peek() != '\n')
     {
@@ -470,7 +513,7 @@ void save(const unsigned short int allsets[][2], string filename)
         cout<<"File already exists. Overwrite? ";
         getline(cin, response);
         if (toupper(response[0]) == 'Y')
-           break;
+            break;
         cout<<"Enter filename: ";
         getline(cin, filename);
         for (size_t i = 0; i < filename.length(); ++i)
@@ -523,4 +566,64 @@ void load(unsigned short int allsets[][2], string filename)
     cout<<"File successfully loaded."<<endl;
     list(allsets, "");
 
+}
+
+string shuntingyard(string expression)
+{
+    stringstream ss, outs;
+    string returnexp;
+    ss << expression;
+    vector<char> operators;
+
+
+    while(ss && ss.peek() != '\n')
+    {
+        if (isdigit(ss.peek()))
+        {
+            unsigned short int number;
+            ss >> number;
+            outs<<number;
+            outs<<' ';
+        }
+        else if (strchr("~+*\\()", ss.peek()) != NULL)
+        {
+            char symbol;
+            ss >> symbol;
+            if (symbol == ')')
+            {
+                while (!operators.empty() && operators.back() != '(')
+                {
+                    outs<<operators.back();
+                    outs<<' ';
+                    operators.pop_back();
+                }
+                operators.pop_back();
+            }
+
+            else if (symbol == '(')
+                operators.push_back(symbol);
+
+            else
+            {
+                while (!operators.empty() && PRECEDENCE.find(symbol) > PRECEDENCE.find(operators.back()))
+                {
+                    outs<<operators.back();
+                    outs<<' ';
+                    operators.pop_back();
+                }
+                operators.push_back(symbol);
+            }
+        }
+        else
+            ss.ignore(1);
+        }
+    while (!operators.empty())
+    {
+        outs<<operators.back();
+        outs<<' ';
+        operators.pop_back();
+    }
+    getline(outs, returnexp);
+//    cout<<"returnexp = "<<returnexp<<endl;
+    return returnexp;
 }
